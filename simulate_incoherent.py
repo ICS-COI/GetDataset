@@ -49,7 +49,8 @@ def incoh_otf(img, params):
     :param params: 模拟参数，包括图像物理边长，波长，出口瞳孔半径，出口瞳孔距离
     :return: 传递函数
     """
-    width, height = img.shape  # 获取图像样本大小
+    t = len(img.shape)
+    width, height = img.shape[t - 2:t]  # 获取图像样本大小
     length_img = params['length']
     lambda_light = params['lambda']  # 波长
     wxp = params['wxp']  # 出口瞳孔半径
@@ -65,9 +66,11 @@ def incoh_otf(img, params):
     ctf = np.double(np.sqrt(fu_mesh ** 2 + fv_mesh ** 2) / f0 <= 1)  # 圆形传递函数
 
     otf = np.fft.ifft2(np.abs(np.fft.fft2(np.fft.fftshift(ctf))) ** 2)
+    psf = np.fft.fftshift(np.fft.ifft2(otf))
+    psf = np.abs(psf / psf.max())
     otf = np.abs(otf / otf[0, 0])
 
-    return otf
+    return ctf, otf, psf
 
 
 def incoh_sample(img_hr, params_hr, params_lr):

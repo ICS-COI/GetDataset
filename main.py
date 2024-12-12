@@ -19,12 +19,20 @@ if __name__ == '__main__':
     offset_vector = np.array([55.07256157 * 2, 80.33416977 * 2])
     shift_vector = {'fast_axis': np.array([1.12539078 * 2, -0.00991981 * 2]), 'scan_dimensions': (16, 14),
                     'slow_axis': np.array([-0.02036928 * 2, -1.1154118 * 2])}
-    illu_sigma = 2.5
-    blur_sigma = 2
+    # illu_sigma = 2.5
+    # blur_sigma = 2
+
+    params = {
+        'length': 1.3e-3,
+        'lambda': 555e-9,
+        'wxp': 1e-3,
+        'zxp': 123.8e-3,
+        'm': 10,
+    }
 
     # 生成退化图像
     simulate_degrade.simulate_degrade(
         image_shape=image_shape, lattice_vectors=lattice_vectors, offset_vector=offset_vector,
-        shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_sigma=illu_sigma,
-        blur_sigma=blur_sigma, show_steps=True, save=False, save_gt=False
+        shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_params=params,
+        blur_params=params, show_steps=True, save=True, save_gt=True
     )

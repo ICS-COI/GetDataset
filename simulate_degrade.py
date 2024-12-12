@@ -4,10 +4,11 @@ import utils
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
+import simulate_incoherent
 
 
 def simulate_degrade(
-        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, blur_sigma,
+        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_params, blur_params,
         show_steps=False, save=False, save_gt=False
 ):
     """
@@ -19,8 +20,8 @@ def simulate_degrade(
     :param shift_vector:位移向量
     :param filepath_list:文件名列表
     :param result_folder:输出文件夹
-    :param illu_sigma: 照明点高斯核sigma
-    :param blur_sigma: 模糊高斯核sigma
+    :param illu_params: 照明点高斯核sigma
+    :param blur_params: 模糊高斯核sigma
     :param show_steps:是否输出图片展示，debug
     :param save:是否保存图片
     :param save_gt: 是否保存ground truth
@@ -31,7 +32,7 @@ def simulate_degrade(
     if show_steps:
         utils.single_show(lattice, "lattice location")
 
-    lattice = simulate_blur_2d(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO)
+    lattice = simulate_blur_2d(lattice, params=illu_params, pad=10, pad_flag=utils.PAD_ZERO)
     if show_steps:
         utils.single_show(lattice, "illumination lattice")
 
@@ -60,7 +61,7 @@ def simulate_degrade(
             utils.single_show(latticed_img, "latticed_img")
 
         # 图像模糊
-        blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
+        blurred_img = simulate_blur_2d(latticed_img, params=blur_params, noise_flag=utils.BLUR_GP, mean_n=0.02,
                                        sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
         if show_steps:
             utils.single_show(blurred_img, "blurred_img")
@@ -190,11 +191,11 @@ def get_shift(shift_vector, frame_number):
         return frame_number * shift_vector
 
 
-def simulate_blur_2d(image, sigma, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_n=0., pad=0, pad_flag=utils.PAD_ZERO):
+def simulate_blur_2d(image, params, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_n=0., pad=0, pad_flag=utils.PAD_ZERO):
     """
     对二维图像或三维堆栈进行模拟模糊
     :param image: 清晰图像
-    :param sigma: 模糊核sigma
+    :param params: 模拟PSF生成参数
     :param noise_flag: 是否添加噪声：utils.BLUR_ONLY、utils.BLUR_GAUSS、BLUR_POISSON、BLUR_GP
     :param mean_n: 高斯噪声均值
     :param sigma_n: 高斯噪声标准差
@@ -202,8 +203,7 @@ def simulate_blur_2d(image, sigma, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_
     :param pad_flag: 填充方式
     :return: 模糊后图像
     """
-    kernel_size = image.shape[1]
-    psf = utils.create_2d_gaussian_kernel(kernel_size, sigma)
+    _, _, psf = simulate_incoherent.incoh_otf(image, params)
     psf /= np.max(psf)
     utils.single_show(psf, "psf")
 

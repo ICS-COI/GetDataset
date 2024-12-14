@@ -34,7 +34,7 @@ if __name__ == '__main__':
     params = {
         'length': 1.3e-3,
         'lambda': 555e-9,
-        'wxp': 1e-3,
+        'wxp': 1.5e-3,
         'zxp': 123.8e-3,
         'm': 10,
     }

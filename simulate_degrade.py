@@ -8,7 +8,8 @@ import simulate_incoherent
 
 
 def simulate_degrade(
-        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_params, blur_params,
+        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_params,
+        blur_params,
         show_steps=False, save=False, save_gt=False
 ):
     """
@@ -91,12 +92,12 @@ def simulate_degrade(
 
     return
 
+
 def simulate_degrade_from_lake(
         lake_path, filepath_list, result_folder, show_steps=False, save=False, save_gt=False
 ):
-
-    _,lake = cv2.imreadmulti(lake_path, flags=cv2.IMREAD_UNCHANGED)
-    lattice = np.float64(lake)/65535
+    _, lake = cv2.imreadmulti(lake_path, flags=cv2.IMREAD_UNCHANGED)
+    lattice = np.float64(lake) / 65535
     if show_steps:
         utils.single_show(lattice, "lattice location")
 
@@ -154,6 +155,7 @@ def simulate_degrade_from_lake(
             utils.save_tiff_2d(gt_name, cropped_img)
 
     return
+
 
 def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, show=True):
     """
@@ -269,8 +271,6 @@ def simulate_blur_2d(image, params, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma
     _, _, psf = simulate_incoherent.incoh_otf(image, params)
     psf /= np.max(psf)
     utils.single_show(psf, "psf")
-    psf_file = os.path.join("D:\\Files\\OneDrive - stu.hit.edu.cn\\codes\\python\\MSIM-MPSS-tiff\\data\\241212-incoherent_psf_model","psf_simulate_1e-3.tiff")
-    utils.save_tiff_2d(psf_file, psf)
 
     if len(image.shape) == 3:
         for j in range(image.shape[0]):

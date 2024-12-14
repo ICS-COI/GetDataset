@@ -20,7 +20,7 @@ if __name__ == '__main__':
     shift_vector = {'fast_axis': np.array([1.12539078 * 2, -0.00991981 * 2]), 'scan_dimensions': (16, 14),
                     'slow_axis': np.array([-0.02036928 * 2, -1.1154118 * 2])}
     illu_sigma = 2.5
-    blur_sigma = 2
+    blur_sigma = 3
 
     # 生成退化图像
     simulate_degrade.simulate_degrade(

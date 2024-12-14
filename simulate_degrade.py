@@ -205,6 +205,8 @@ def simulate_blur_2d(image, sigma, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_
     kernel_size = image.shape[1]
     psf = utils.create_2d_gaussian_kernel(kernel_size, sigma)
     psf /= np.max(psf)
+    psf_path = os.path.join("D:\\Files\\OneDrive - stu.hit.edu.cn\\codes\\python\\MSIM-MPSS-tiff\\data\\241212-incoherent_psf_model","psf_gauss_"+str(sigma)+".tiff")
+    utils.save_tiff_2d(psf_path, psf)
     utils.single_show(psf, "psf")
 
     if len(image.shape) == 3:

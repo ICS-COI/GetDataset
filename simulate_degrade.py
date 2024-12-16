@@ -38,8 +38,8 @@ def simulate_degrade(
         utils.single_show(lattice, "illumination lattice")
 
     for i in range(1):
-        img = np.zeros([256, 256])
-        # img = np.ones([256, 256])
+        # img = np.zeros([256, 256])
+        img = np.ones([256, 256])
 
         # for i in range(len(filepath_list)):
         # 图像读取
@@ -74,8 +74,8 @@ def simulate_degrade(
 
         _, file_name = os.path.split(filepath_list[i])
         file_name, _ = os.path.splitext(file_name)
-        file_name = "background"
-        # file_name = "lake"
+        # file_name = "background"
+        file_name = "lake"
 
         if save:
             if not os.path.isdir(result_folder):
@@ -93,68 +93,68 @@ def simulate_degrade(
     return
 
 
-def simulate_degrade_from_lake(
-        lake_path, filepath_list, result_folder, show_steps=False, save=False, save_gt=False
-):
-    _, lake = cv2.imreadmulti(lake_path, flags=cv2.IMREAD_UNCHANGED)
-    lattice = np.float64(lake) / 65535
-    if show_steps:
-        utils.single_show(lattice, "lattice location")
-
-    for i in range(1):
-        # img = np.zeros([128, 128])
-        # img = np.ones([128, 128])
-
-        # for i in range(len(filepath_list)):
-        # 图像读取
-        img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
-        if show_steps:
-            utils.single_show(img, "original image")
-
-        # 裁剪图像
-        cropped_img = img[img.shape[0] // 2 - lattice.shape[1] // 2:img.shape[0] // 2 + lattice.shape[1] // 2,
-                      img.shape[1] // 2 - lattice.shape[2] // 2:img.shape[1] // 2 + lattice.shape[2] // 2]
-        if show_steps:
-            utils.single_show(cropped_img, "cropped_img")
-
-        # 扩展维度
-        extended_img = np.stack([cropped_img] * 224, axis=0)
-
-        # 晶格照明
-        latticed_img = extended_img * lattice
-        if show_steps:
-            utils.single_show(latticed_img, "latticed_img")
-
-        # 图像模糊
-        # blurred_img = simulate_blur_2d(latticed_img, params=blur_params, noise_flag=utils.BLUR_GP, mean_n=0.02,
-        #                                sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
-        # if show_steps:
-        #     utils.single_show(blurred_img, "blurred_img")
-        #
-        # # 图像压缩
-        # compressed_img = compress_img(blurred_img, compress_rate=0.5)
-        # if show_steps:
-        #     utils.single_show(compressed_img, "compressed_img")
-
-        _, file_name = os.path.split(filepath_list[i])
-        file_name, _ = os.path.splitext(file_name)
-        # file_name = "background"
-        # file_name = "lake"
-
-        if save:
-            if not os.path.isdir(result_folder):
-                os.makedirs(result_folder)
-            result_name = os.path.join(result_folder, file_name) + '.tiff'
-            utils.save_tiff_3d(result_name, latticed_img)
-
-        if save_gt:
-            gt_folder = os.path.join(result_folder, "ground truth")
-            if not os.path.isdir(gt_folder):
-                os.makedirs(gt_folder)
-            gt_name = os.path.join(gt_folder, file_name) + '_gt.tiff'
-            utils.save_tiff_2d(gt_name, cropped_img)
-
-    return
+# def simulate_degrade_from_lake(
+#         lake_path, filepath_list, result_folder, show_steps=False, save=False, save_gt=False
+# ):
+#     _, lake = cv2.imreadmulti(lake_path, flags=cv2.IMREAD_UNCHANGED)
+#     lattice = np.float64(lake) / 65535
+#     if show_steps:
+#         utils.single_show(lattice, "lattice location")
+#
+#     for i in range(1):
+#         # img = np.zeros([128, 128])
+#         # img = np.ones([128, 128])
+#
+#         # for i in range(len(filepath_list)):
+#         # 图像读取
+#         img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
+#         if show_steps:
+#             utils.single_show(img, "original image")
+#
+#         # 裁剪图像
+#         cropped_img = img[img.shape[0] // 2 - lattice.shape[1] // 2:img.shape[0] // 2 + lattice.shape[1] // 2,
+#                       img.shape[1] // 2 - lattice.shape[2] // 2:img.shape[1] // 2 + lattice.shape[2] // 2]
+#         if show_steps:
+#             utils.single_show(cropped_img, "cropped_img")
+#
+#         # 扩展维度
+#         extended_img = np.stack([cropped_img] * 224, axis=0)
+#
+#         # 晶格照明
+#         latticed_img = extended_img * lattice
+#         if show_steps:
+#             utils.single_show(latticed_img, "latticed_img")
+#
+#         # 图像模糊
+#         # blurred_img = simulate_blur_2d(latticed_img, params=blur_params, noise_flag=utils.BLUR_GP, mean_n=0.02,
+#         #                                sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
+#         # if show_steps:
+#         #     utils.single_show(blurred_img, "blurred_img")
+#         #
+#         # # 图像压缩
+#         # compressed_img = compress_img(blurred_img, compress_rate=0.5)
+#         # if show_steps:
+#         #     utils.single_show(compressed_img, "compressed_img")
+#
+#         _, file_name = os.path.split(filepath_list[i])
+#         file_name, _ = os.path.splitext(file_name)
+#         # file_name = "background"
+#         # file_name = "lake"
+#
+#         if save:
+#             if not os.path.isdir(result_folder):
+#                 os.makedirs(result_folder)
+#             result_name = os.path.join(result_folder, file_name) + '.tiff'
+#             utils.save_tiff_3d(result_name, latticed_img)
+#
+#         if save_gt:
+#             gt_folder = os.path.join(result_folder, "ground truth")
+#             if not os.path.isdir(gt_folder):
+#                 os.makedirs(gt_folder)
+#             gt_name = os.path.join(gt_folder, file_name) + '_gt.tiff'
+#             utils.save_tiff_2d(gt_name, cropped_img)
+#
+#     return
 
 
 def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, show=True):

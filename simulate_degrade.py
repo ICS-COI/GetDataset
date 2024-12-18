@@ -13,6 +13,8 @@ def simulate_degrade_reallocate(
 ):
     image = np.zeros(image_shape)
     image2 = np.zeros((224, 128, 128))
+
+    # 每个晶格点位置
     lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
     if show_steps:
         utils.single_show(lattice, "lattice location")
@@ -39,9 +41,18 @@ def simulate_degrade_reallocate(
         utils.single_show(image, "lattice detected")
         utils.single_show(image2, "lattice detected2")
 
-    # 每个晶格点位置
+    # 高斯核照明掩膜（224*128*128）
+    lattice_mask = simulate_blur_2d(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO,
+                                    noise_flag=utils.BLUR_ONLY)
+    # lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
+    # _, lattice = cv2.imreadmulti(lattice_path, flags=cv2.IMREAD_UNCHANGED)
+    lattice_mask = np.float64(lattice_mask)
+    lattice_mask /= lattice_mask.max()
 
-    # lattice = simulate_blur_2d1(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO, noise_flag=utils.BLUR_GAUSS,
+    lattice_show = compress_img(lattice, compress_rate=0.5)
+    if show_steps:
+        utils.single_show(lattice_show, "illumination lattice")
+    # lattice_mask = simulate_blur_2d1(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO, noise_flag=utils.BLUR_GAUSS,
     #                             mean_n=0, sigma_n=0.01)
     # print(lattice.shape, lattice.max(), lattice.min())
     # lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
@@ -53,9 +64,9 @@ def simulate_degrade_reallocate(
     # if show_steps:
     #     utils.single_show(lattice_show, "illumination lattice")
     #
-    for i in range(1):
-        #     # img = np.zeros([256, 256])
-        #     # img = np.ones([256, 256])
+    for i in range(2):
+        # img = np.zeros([256, 256])
+        # img = np.ones([256, 256])
         #
         #     # for i in range(len(filepath_list)):
         #     # 图像读取
@@ -82,33 +93,37 @@ def simulate_degrade_reallocate(
         if show_steps:
             utils.single_show(reallocate_img, "reallocate_img")
 
-    #
-    #     # 晶格照明
-    #     latticed_img = extended_img * lattice
-    #     if show_steps:
-    #         utils.single_show(latticed_img, "latticed_img")
-    #
-    #     # 图像模糊
-    #     blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
-    #                                    sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
-    #     if show_steps:
-    #         utils.single_show(blurred_img, "blurred_img")
-    #
-    #     # 图像压缩
-    #     compressed_img = compress_img(blurred_img, compress_rate=0.5)
-    #     if show_steps:
-    #         utils.single_show(compressed_img, "compressed_img")
-    #
+        masked_img = reallocate_img * lattice_show
+        if show_steps:
+            utils.single_show(masked_img, "masked_img")
+
+        #
+        #     # 晶格照明
+        #     latticed_img = extended_img * lattice
+        #     if show_steps:
+        #         utils.single_show(latticed_img, "latticed_img")
+        #
+        #     # 图像模糊
+        #     blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
+        #                                    sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
+        #     if show_steps:
+        #         utils.single_show(blurred_img, "blurred_img")
+        #
+        #     # 图像压缩
+        #     compressed_img = compress_img(blurred_img, compress_rate=0.5)
+        #     if show_steps:
+        #         utils.single_show(compressed_img, "compressed_img")
+        #
         _, file_name = os.path.split(filepath_list[i])
         file_name, _ = os.path.splitext(file_name)
         # file_name = "background"
         # file_name = "lake"
-    #
+        #
         if save:
             if not os.path.isdir(result_folder):
                 os.makedirs(result_folder)
             result_name = os.path.join(result_folder, file_name) + '.tiff'
-            utils.save_tiff_3d(result_name, reallocate_img)
+            utils.save_tiff_3d(result_name, masked_img)
 
     #     if save_gt:
     #         gt_folder = os.path.join(result_folder, "ground truth")
@@ -126,22 +141,6 @@ def simulate_degrade_reallocate(
 
     return
 
-
-# def get_circular_region_coordinates_numpy(center_x, center_y, radius):
-#     """
-#     使用numpy获取以(center_x, center_y)为中心，radius为半径的圆形区域内所有像素点坐标
-#     :param center_x: 中心坐标的x值
-#     :param center_y: 中心坐标的y值
-#     :param radius: 圆形区域的半径
-#     :return: 圆形区域内像素点坐标列表，每个元素为一个二元组 (x, y)
-#     """
-#     x = np.arange(center_x - radius, center_x + radius + 1)
-#     y = np.arange(center_y - radius, center_y + radius + 1)
-#     xx, yy = np.meshgrid(x, y)
-#     distance = np.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
-#     mask = distance <= radius
-#     coordinates = np.column_stack((xx[mask].ravel(), yy[mask].ravel())).tolist()
-#     return coordinates
 
 def get_circular_region_coordinates_numpy(center_x, center_y, radius, image_shape):
     """
@@ -170,113 +169,105 @@ def get_circular_region_coordinates_numpy(center_x, center_y, radius, image_shap
     return coordinates
 
 
-# # 示例用法
-# center_x = 10
-# center_y = 10
-# radius = 5
-# result = get_circular_region_coordinates_numpy(center_x, center_y, radius)
-# print(result)
-
-
-def simulate_degrade(
-        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, blur_sigma,
-        show_steps=False, save=False, save_gt=False, save_illu=False
-):
-    """
-    实现晶格照明、模糊、压缩模拟数据集的生成（注意）
-
-    :param image_shape:目标图像的像素形状*2
-    :param lattice_vectors:晶格向量
-    :param offset_vector:偏移向量
-    :param shift_vector:位移向量
-    :param filepath_list:文件名列表
-    :param result_folder:输出文件夹
-    :param illu_sigma: 照明点高斯核sigma
-    :param blur_sigma: 模糊高斯核sigma
-    :param show_steps:是否输出图片展示，debug
-    :param save:是否保存图片
-    :param save_gt: 是否保存ground truth
-    :param save_illu: 是否保存照明图像
-    :return:
-    """
-    image = np.zeros(image_shape)
-    lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
-    if show_steps:
-        utils.single_show(lattice, "lattice location")
-
-    lattice = simulate_blur_2d1(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO, noise_flag=utils.BLUR_GAUSS,
-                                mean_n=0, sigma_n=0.01)
-    print(lattice.shape, lattice.max(), lattice.min())
-    lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
-    _, lattice = cv2.imreadmulti(lattice_path, flags=cv2.IMREAD_UNCHANGED)
-    lattice = np.float64(lattice)
-    lattice /= lattice.max()
-
-    lattice_show = compress_img(lattice, compress_rate=0.5)
-    if show_steps:
-        utils.single_show(lattice_show, "illumination lattice")
-
-    for i in range(1):
-        # img = np.zeros([256, 256])
-        # img = np.ones([256, 256])
-
-        # for i in range(len(filepath_list)):
-        # 图像读取
-        img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
-        if show_steps:
-            utils.single_show(img, "original image")
-
-        # 裁剪图像
-        cropped_img = img[img.shape[0] // 2 - image_shape[1] // 2:img.shape[0] // 2 + image_shape[1] // 2,
-                      img.shape[1] // 2 - image_shape[2] // 2:img.shape[1] // 2 + image_shape[2] // 2]
-        if show_steps:
-            utils.single_show(cropped_img, "cropped_img")
-
-        # 扩展维度
-        extended_img = np.stack([cropped_img] * 224, axis=0)
-
-        # 晶格照明
-        latticed_img = extended_img * lattice
-        if show_steps:
-            utils.single_show(latticed_img, "latticed_img")
-
-        # 图像模糊
-        blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
-                                       sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
-        if show_steps:
-            utils.single_show(blurred_img, "blurred_img")
-
-        # 图像压缩
-        compressed_img = compress_img(blurred_img, compress_rate=0.5)
-        if show_steps:
-            utils.single_show(compressed_img, "compressed_img")
-
-        _, file_name = os.path.split(filepath_list[i])
-        file_name, _ = os.path.splitext(file_name)
-        # file_name = "background"
-        # file_name = "lake"
-
-        if save:
-            if not os.path.isdir(result_folder):
-                os.makedirs(result_folder)
-            result_name = os.path.join(result_folder, file_name) + '.tiff'
-            utils.save_tiff_3d(result_name, compressed_img)
-
-        if save_gt:
-            gt_folder = os.path.join(result_folder, "ground truth")
-            if not os.path.isdir(gt_folder):
-                os.makedirs(gt_folder)
-            gt_name = os.path.join(gt_folder, file_name) + '_gt.tiff'
-            utils.save_tiff_2d(gt_name, cropped_img)
-
-        if save_illu:
-            illu_folder = os.path.join(result_folder, "illumination")
-            if not os.path.isdir(illu_folder):
-                os.makedirs(illu_folder)
-            illu_name = os.path.join(illu_folder, file_name) + '_illu.tiff'
-            utils.save_tiff_3d(illu_name, lattice_show)
-
-    return
+# def simulate_degrade(
+#         image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, blur_sigma,
+#         show_steps=False, save=False, save_gt=False, save_illu=False
+# ):
+#     """
+#     实现晶格照明、模糊、压缩模拟数据集的生成（注意）
+#
+#     :param image_shape:目标图像的像素形状*2
+#     :param lattice_vectors:晶格向量
+#     :param offset_vector:偏移向量
+#     :param shift_vector:位移向量
+#     :param filepath_list:文件名列表
+#     :param result_folder:输出文件夹
+#     :param illu_sigma: 照明点高斯核sigma
+#     :param blur_sigma: 模糊高斯核sigma
+#     :param show_steps:是否输出图片展示，debug
+#     :param save:是否保存图片
+#     :param save_gt: 是否保存ground truth
+#     :param save_illu: 是否保存照明图像
+#     :return:
+#     """
+#     image = np.zeros(image_shape)
+#     lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
+#     if show_steps:
+#         utils.single_show(lattice, "lattice location")
+#
+#     lattice = simulate_blur_2d1(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO, noise_flag=utils.BLUR_GAUSS,
+#                                 mean_n=0, sigma_n=0.01)
+#     print(lattice.shape, lattice.max(), lattice.min())
+#     lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
+#     _, lattice = cv2.imreadmulti(lattice_path, flags=cv2.IMREAD_UNCHANGED)
+#     lattice = np.float64(lattice)
+#     lattice /= lattice.max()
+#
+#     lattice_show = compress_img(lattice, compress_rate=0.5)
+#     if show_steps:
+#         utils.single_show(lattice_show, "illumination lattice")
+#
+#     for i in range(1):
+#         # img = np.zeros([256, 256])
+#         # img = np.ones([256, 256])
+#
+#         # for i in range(len(filepath_list)):
+#         # 图像读取
+#         img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
+#         if show_steps:
+#             utils.single_show(img, "original image")
+#
+#         # 裁剪图像
+#         cropped_img = img[img.shape[0] // 2 - image_shape[1] // 2:img.shape[0] // 2 + image_shape[1] // 2,
+#                       img.shape[1] // 2 - image_shape[2] // 2:img.shape[1] // 2 + image_shape[2] // 2]
+#         if show_steps:
+#             utils.single_show(cropped_img, "cropped_img")
+#
+#         # 扩展维度
+#         extended_img = np.stack([cropped_img] * 224, axis=0)
+#
+#         # 晶格照明
+#         latticed_img = extended_img * lattice
+#         if show_steps:
+#             utils.single_show(latticed_img, "latticed_img")
+#
+#         # 图像模糊
+#         blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
+#                                        sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
+#         if show_steps:
+#             utils.single_show(blurred_img, "blurred_img")
+#
+#         # 图像压缩
+#         compressed_img = compress_img(blurred_img, compress_rate=0.5)
+#         if show_steps:
+#             utils.single_show(compressed_img, "compressed_img")
+#
+#         _, file_name = os.path.split(filepath_list[i])
+#         file_name, _ = os.path.splitext(file_name)
+#         # file_name = "background"
+#         # file_name = "lake"
+#
+#         if save:
+#             if not os.path.isdir(result_folder):
+#                 os.makedirs(result_folder)
+#             result_name = os.path.join(result_folder, file_name) + '.tiff'
+#             utils.save_tiff_3d(result_name, compressed_img)
+#
+#         if save_gt:
+#             gt_folder = os.path.join(result_folder, "ground truth")
+#             if not os.path.isdir(gt_folder):
+#                 os.makedirs(gt_folder)
+#             gt_name = os.path.join(gt_folder, file_name) + '_gt.tiff'
+#             utils.save_tiff_2d(gt_name, cropped_img)
+#
+#         if save_illu:
+#             illu_folder = os.path.join(result_folder, "illumination")
+#             if not os.path.isdir(illu_folder):
+#                 os.makedirs(illu_folder)
+#             illu_name = os.path.join(illu_folder, file_name) + '_illu.tiff'
+#             utils.save_tiff_3d(illu_name, lattice_show)
+#
+#     return
 
 
 def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, show=True):

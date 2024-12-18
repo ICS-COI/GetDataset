@@ -63,7 +63,11 @@ from simulate_degrade import compress_img
 # utils.save_tiff_2d(r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake-psf2562.tif",psf)
 
 
-x = np.zeros((224,256,256))
-m = tuple([0,3,156])
-x[m] = 1
-print(x)
+# x = np.zeros((224,256,256))
+# m = tuple([0,3,156])
+# x[m] = 1
+# print(x)
+
+
+background = np.zeros((224,128,128))
+utils.save_tiff_3d(r"D:/Files/OneDrive - stu.hit.edu.cn/codes/python/MSIM-MPSS-tiff/data/241218-relocate/MSIM_reallocate_mask,radium=5,illu_sigma=4/background.tiff",background)

@@ -6,8 +6,9 @@ import simulate_degrade
 if __name__ == '__main__':
     show_steps = True
     data_root = r'D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR'
-    ori_folder = os.path.join(data_root, r'F-actin/GT_all_a')
-    result_folder = os.path.join(data_root, r'result/F-actin_3_3')
+    # ori_folder = os.path.join(data_root, r'F-actin/GT_all_a')
+    ori_folder = os.path.join(data_root, r'MSIM')
+    result_folder = os.path.join(data_root, r'result/MSIM_relocate,radium=4')
 
     filepath_list = list_suffix_files(ori_folder, '.tiff')
 
@@ -23,8 +24,14 @@ if __name__ == '__main__':
     blur_sigma = 2
 
     # 生成退化图像
-    simulate_degrade.simulate_degrade(
+    # simulate_degrade.simulate_degrade(
+    #     image_shape=image_shape, lattice_vectors=lattice_vectors, offset_vector=offset_vector,
+    #     shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_sigma=illu_sigma,
+    #     blur_sigma=blur_sigma, show_steps=True, save=True, save_gt=True, save_illu = True
+    # )
+
+    simulate_degrade.simulate_degrade_reallocate(
         image_shape=image_shape, lattice_vectors=lattice_vectors, offset_vector=offset_vector,
         shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_sigma=illu_sigma,
-        blur_sigma=blur_sigma, show_steps=True, save=False, save_gt=False
+        blur_sigma=blur_sigma, detect_radium=4,show_steps=True, save=True, save_gt=True, save_illu=True
     )

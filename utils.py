@@ -115,7 +115,7 @@ def blur_2d(img: np.ndarray, psf: np.ndarray, noise_flag: int, mean=0., sigma=0.
         img_blur = np.random.poisson(img_blur * vals) / np.float32(vals)
         noise = np.random.normal(mean, sigma, img_pad.shape)
         img_blur = img_blur + noise
-        # img_blur /= img_blur.max()
+        img_blur /= img_blur.max()
         img_blur = np.clip(img_blur, a_min=0, a_max=1)
 
     if img_pad.shape != img.shape:
@@ -186,7 +186,7 @@ def unpad_2d(img: np.ndarray, padding: tuple) -> np.ndarray:
 
 
 def save_tiff_3d(filename, img):
-    img = np.uint16((img - img.min()) * 65535 / (img.max() - img.min()))
+    img = np.uint16(img * 65535)
     stat = cv2.imwritemulti(filename, tuple(img),
                             (int(cv2.IMWRITE_TIFF_RESUNIT), 1, int(cv2.IMWRITE_TIFF_COMPRESSION), 1))
     if stat:

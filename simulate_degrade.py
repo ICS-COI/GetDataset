@@ -7,7 +7,8 @@ from scipy.ndimage import median_filter
 
 
 def simulate_degrade(
-        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, blur_sigma,
+        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, illu_sigma2,blur_sigma,
+        illu_n_mean, illu_n_sigma, blur_n_mean, blur_n_sigma,
         show_steps=False, save=False, save_gt=False
 ):
     """
@@ -31,17 +32,18 @@ def simulate_degrade(
     if show_steps:
         utils.single_show(lattice, "lattice location")
 
-    lattice = simulate_blur_2d(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO)
+    lattice = simulate_blur_2d(lattice, sigma=illu_sigma, sigma2=illu_sigma2, noise_flag=utils.BLUR_GP, mean_n=illu_n_mean,
+                               sigma_n=illu_n_sigma, pad=10, pad_flag=utils.PAD_ZERO, flag=True)
     if show_steps:
         utils.single_show(lattice, "illumination lattice")
 
-    for i in range(1):
-        # img = np.zeros([256, 256])
-        # img = np.ones([256, 256])
+    # for i in range(len(filepath_list)):
+    for i in range(3):
 
-        # for i in range(len(filepath_list)):
         # 图像读取
         img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
+        # img = np.zeros([256, 256])
+        # img = np.ones([256, 256])
         if show_steps:
             utils.single_show(img, "original image")
 
@@ -60,8 +62,8 @@ def simulate_degrade(
             utils.single_show(latticed_img, "latticed_img")
 
         # 图像模糊
-        blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
-                                       sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
+        blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=blur_n_mean,
+                                       sigma_n=blur_n_sigma, pad=10, pad_flag=utils.PAD_ZERO)
         if show_steps:
             utils.single_show(blurred_img, "blurred_img")
 
@@ -79,7 +81,7 @@ def simulate_degrade(
             if not os.path.isdir(result_folder):
                 os.makedirs(result_folder)
             result_name = os.path.join(result_folder, file_name) + '.tiff'
-            utils.save_tiff_3d(result_name, compressed_img)
+            utils.save_tiff_3d(result_name, compressed_img / 1.9)
 
         if save_gt:
             gt_folder = os.path.join(result_folder, "ground truth")
@@ -190,7 +192,8 @@ def get_shift(shift_vector, frame_number):
         return frame_number * shift_vector
 
 
-def simulate_blur_2d(image, sigma, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_n=0., pad=0, pad_flag=utils.PAD_ZERO):
+def simulate_blur_2d(image, sigma, sigma2=10, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_n=0., pad=0,
+                     pad_flag=utils.PAD_ZERO, flag=False):
     """
     对二维图像或三维堆栈进行模拟模糊
     :param image: 清晰图像
@@ -204,6 +207,17 @@ def simulate_blur_2d(image, sigma, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_
     """
     kernel_size = image.shape[1]
     psf = utils.create_2d_gaussian_kernel(kernel_size, sigma)
+
+    if flag:
+        psf2 = utils.create_2d_gaussian_kernel(kernel_size, sigma2)
+        psf3 = utils.create_2d_gaussian_kernel(kernel_size, 0.4)
+        psf4 = utils.create_2d_gaussian_kernel(kernel_size, 1.5)
+        psf5 = utils.create_2d_gaussian_kernel(kernel_size, 4)
+        psf6 = utils.create_2d_gaussian_kernel(kernel_size, 6)
+        psf = np.maximum(psf, psf2,psf3)
+        psf = np.maximum(psf, psf4,psf5)
+        psf = np.maximum(psf, psf6)
+
     psf /= np.max(psf)
     utils.single_show(psf, "psf")
 

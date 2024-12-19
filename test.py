@@ -69,5 +69,8 @@ from simulate_degrade import compress_img
 # print(x)
 
 
-background = np.zeros((224,128,128))
-utils.save_tiff_3d(r"D:/Files/OneDrive - stu.hit.edu.cn/codes/python/MSIM-MPSS-tiff/data/241218-relocate/MSIM_reallocate_mask,radium=5,illu_sigma=4/background.tiff",background)
+# background = np.zeros((224,128,128))
+# utils.save_tiff_3d(r"D:/Files/OneDrive - stu.hit.edu.cn/codes/python/MSIM-MPSS-tiff/data/241218-relocate/MSIM_reallocate_mask,radium=5,illu_sigma=4/background.tiff",background)
+
+kernel = utils.create_2d_gaussian_kernel(256,10)
+utils.single_show(kernel,"kernel")

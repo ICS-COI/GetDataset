@@ -141,6 +141,141 @@ def simulate_degrade_reallocate(
 
     return
 
+# 衰减扩散照明模式(探寻自然的秘密)
+def simulate_degrade_spread(
+        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, blur_sigma,
+        detect_radium=10,
+        show_steps=False, save=False, save_gt=False, save_illu=False
+):
+    image = np.zeros(image_shape)
+    image2 = np.zeros((224, 128, 128))
+
+    # 每个晶格点位置
+    lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
+    if show_steps:
+        utils.single_show(lattice, "lattice location")
+
+    detect_all = []
+    for i in range(len(lattice)):
+        coordinates = np.argwhere(lattice[i] == 1)
+        location_idx = [tuple(coord) for coord in coordinates]
+        detected_i = []
+        for (x, y) in location_idx:
+            detect_idx = get_circular_region_coordinates_numpy(x, y, detect_radium, image[0].shape)
+            circle_idx = []
+            for detected_idx in detect_idx:
+                show_idx = [detected_idx[0] - x // 2, detected_idx[1] - y // 2]
+                if (0 <= detected_idx[0] < image.shape[1] and 0 <= detected_idx[1] < image.shape[2] and
+                        0 <= show_idx[0] < image.shape[1] // 2 and 0 <= show_idx[1] < image.shape[2] // 2):
+                    circle_idx.append((detected_idx, show_idx))
+                    image[tuple([i] + detected_idx)] = 1
+                    image2[tuple([i] + show_idx)] = 1
+            detected_i.append({"original_idx": [x, y], "image_idx": [x // 2, y // 2], "circle_idx": circle_idx})
+        detect_all.append(detected_i)
+
+    if show_steps:
+        utils.single_show(image, "lattice detected")
+
+    # # 高斯核照明掩膜（224*128*128）
+    # lattice_mask = simulate_blur_2d(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO,
+    #                                 noise_flag=utils.BLUR_ONLY)
+    # # lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
+    # # _, lattice = cv2.imreadmulti(lattice_path, flags=cv2.IMREAD_UNCHANGED)
+    # lattice_mask = np.float64(lattice_mask)
+    # lattice_mask /= lattice_mask.max()
+    #
+    # lattice_show = compress_img(lattice, compress_rate=0.5)
+    # if show_steps:
+    #     utils.single_show(lattice_show, "illumination lattice")
+    # # lattice_mask = simulate_blur_2d1(lattice, sigma=illu_sigma, pad=10, pad_flag=utils.PAD_ZERO, noise_flag=utils.BLUR_GAUSS,
+    # #                             mean_n=0, sigma_n=0.01)
+    # # print(lattice.shape, lattice.max(), lattice.min())
+    # # lattice_path = r"D:/Files/OneDrive - stu.hit.edu.cn/Dataset/BioSR/result/MSIM_middle/lake_256.tiff"
+    # # _, lattice = cv2.imreadmulti(lattice_path, flags=cv2.IMREAD_UNCHANGED)
+    # # lattice = np.float64(lattice)
+    # # lattice /= lattice.max()
+    # #
+    # # lattice_show = compress_img(lattice, compress_rate=0.5)
+    # # if show_steps:
+    # #     utils.single_show(lattice_show, "illumination lattice")
+    # #
+    # for i in range(2):
+    #     # img = np.zeros([256, 256])
+    #     # img = np.ones([256, 256])
+    #     #
+    #     #     # for i in range(len(filepath_list)):
+    #     #     # 图像读取
+    #     img = cv2.imread(filepath_list[i], cv2.IMREAD_UNCHANGED) / 65535
+    #     if show_steps:
+    #         utils.single_show(img, "original image")
+    #     #
+    #     # 裁剪图像
+    #     cropped_img = img[img.shape[0] // 2 - image_shape[1] // 2:img.shape[0] // 2 + image_shape[1] // 2,
+    #                   img.shape[1] // 2 - image_shape[2] // 2:img.shape[1] // 2 + image_shape[2] // 2]
+    #     if show_steps:
+    #         utils.single_show(cropped_img, "cropped_img")
+    #     #
+    #     # 扩展维度
+    #     extended_img = np.stack([cropped_img] * 224, axis=0)
+    #     reallocate_img = np.zeros((224, 128, 128))
+    #
+    #     # 像素重分配
+    #     for j in range(len(detect_all)):
+    #         for circle in detect_all[j]:
+    #             for (idx1, idx2) in circle["circle_idx"]:
+    #                 reallocate_img[tuple([j] + idx2)] = extended_img[tuple([j] + idx1)]
+    #
+    #     if show_steps:
+    #         utils.single_show(reallocate_img, "reallocate_img")
+    #
+    #     masked_img = reallocate_img * lattice_show
+    #     if show_steps:
+    #         utils.single_show(masked_img, "masked_img")
+    #
+    #     #
+    #     #     # 晶格照明
+    #     #     latticed_img = extended_img * lattice
+    #     #     if show_steps:
+    #     #         utils.single_show(latticed_img, "latticed_img")
+    #     #
+    #     #     # 图像模糊
+    #     #     blurred_img = simulate_blur_2d(latticed_img, sigma=blur_sigma, noise_flag=utils.BLUR_GP, mean_n=0.02,
+    #     #                                    sigma_n=0.01, pad=10, pad_flag=utils.PAD_ZERO)
+    #     #     if show_steps:
+    #     #         utils.single_show(blurred_img, "blurred_img")
+    #     #
+    #     #     # 图像压缩
+    #     #     compressed_img = compress_img(blurred_img, compress_rate=0.5)
+    #     #     if show_steps:
+    #     #         utils.single_show(compressed_img, "compressed_img")
+    #     #
+    #     _, file_name = os.path.split(filepath_list[i])
+    #     file_name, _ = os.path.splitext(file_name)
+    #     # file_name = "background"
+    #     # file_name = "lake"
+    #     #
+    #     if save:
+    #         if not os.path.isdir(result_folder):
+    #             os.makedirs(result_folder)
+    #         result_name = os.path.join(result_folder, file_name) + '.tiff'
+    #         utils.save_tiff_3d(result_name, masked_img)
+    #
+    # #     if save_gt:
+    # #         gt_folder = os.path.join(result_folder, "ground truth")
+    # #         if not os.path.isdir(gt_folder):
+    # #             os.makedirs(gt_folder)
+    # #         gt_name = os.path.join(gt_folder, file_name) + '_gt.tiff'
+    # #         utils.save_tiff_2d(gt_name, cropped_img)
+    # #
+    # #     if save_illu:
+    # #         illu_folder = os.path.join(result_folder, "illumination")
+    # #         if not os.path.isdir(illu_folder):
+    # #             os.makedirs(illu_folder)
+    # #         illu_name = os.path.join(illu_folder, file_name) + '_illu.tiff'
+    # #         utils.save_tiff_3d(illu_name, lattice_show)
+
+    return
+
 
 def get_circular_region_coordinates_numpy(center_x, center_y, radius, image_shape):
     """

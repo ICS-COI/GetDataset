@@ -30,8 +30,16 @@ if __name__ == '__main__':
     #     blur_sigma=blur_sigma, show_steps=True, save=True, save_gt=True, save_illu = True
     # )
 
-    simulate_degrade.simulate_degrade_reallocate(
+    # # 像素重分配图像
+    # simulate_degrade.simulate_degrade_reallocate(
+    #     image_shape=image_shape, lattice_vectors=lattice_vectors, offset_vector=offset_vector,
+    #     shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_sigma=illu_sigma,
+    #     blur_sigma=blur_sigma, detect_radium=5,show_steps=True, save=True, save_gt=True, save_illu=True
+    # )
+
+    # 探寻自然的秘密
+    simulate_degrade.simulate_degrade_spread(
         image_shape=image_shape, lattice_vectors=lattice_vectors, offset_vector=offset_vector,
         shift_vector=shift_vector, filepath_list=filepath_list, result_folder=result_folder, illu_sigma=illu_sigma,
-        blur_sigma=blur_sigma, detect_radium=5,show_steps=True, save=True, save_gt=True, save_illu=True
+        blur_sigma=blur_sigma, detect_radium=10, show_steps=True, save=True, save_gt=True, save_illu=True
     )

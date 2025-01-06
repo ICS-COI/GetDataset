@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     # DMD图像生成
     img_shape = [1080, 1920]
-    slice_num = shift_vector1['scan_dimensions'][0] * shift_vector1['scan_dimensions'][1]
+    slice_num1 = shift_vector1['scan_dimensions'][0] * shift_vector1['scan_dimensions'][1]
     lattice_stack = get_lattice_image(img_shape, lattice_vectors1, offset_vector1, shift_vector1, show=False)
     utils.single_show(lattice_stack, "lattice_stack.tiff")
     utils.save_tiff_3d(str(scan_dimensions)+"_"+str(vector_basis)+"_"+"1.tiff",lattice_stack)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         location_idx = [tuple(coord) for coord in coordinates]
         detected_i = []
         for (x, y) in location_idx:
-            detect_idx = simulate_degrade.get_circular_region_coordinates_numpy(x, y, detect_radium, img_shape)
+            detect_idx = utils.get_circular_region_coordinates_numpy(x, y, detect_radium, img_shape)
             for detected_idx in detect_idx:
                 lattice_stack[tuple([i] + detected_idx)] = 1
     utils.single_show(lattice_stack, "lattice_stack_circle_36.tiff")

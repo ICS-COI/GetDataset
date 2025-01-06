@@ -200,3 +200,29 @@ def save_tiff_2d(filename, img):
     if stat:
         print("Successfully save", filename, "!")
         return
+
+def get_circular_region_coordinates_numpy(center_x, center_y, radius, image_shape):
+    """
+    使用numpy获取以(center_x, center_y)为中心，radius为半径的圆形区域内所有像素点坐标，
+    并根据输入的图像宽度和高度对坐标进行限制，确保都在图像范围内
+    :param center_x: 中心坐标的x值
+    :param center_y: 中心坐标的y值
+    :param radius: 圆形区域的半径
+    :param image_shape: 图像形状
+    :return: 圆形区域内像素点坐标列表，每个元素为一个二元组 (x, y)
+    """
+    # 确定横坐标（x）的有效范围，限制在图像宽度内
+    x_min = max(center_x - radius, 0)
+    x_max = min(center_x + radius, image_shape[0] - 1)
+    x = np.arange(x_min, x_max + 1)
+
+    # 确定纵坐标（y）的有效范围，限制在图像高度内
+    y_min = max(center_y - radius, 0)
+    y_max = min(center_y + radius, image_shape[1] - 1)
+    y = np.arange(y_min, y_max + 1)
+
+    xx, yy = np.meshgrid(x, y)
+    distance = np.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
+    mask = distance <= radius
+    coordinates = np.column_stack((xx[mask].ravel(), yy[mask].ravel())).tolist()
+    return coordinates

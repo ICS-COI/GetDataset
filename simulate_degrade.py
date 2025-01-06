@@ -2,12 +2,135 @@ import os
 import cv2
 import utils
 import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
+from colorama import Fore
+
+
+# 从成像原理出发
+def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_vectors, offset_vector,
+                    shift_vector, filepath_list, show_steps=False, ):
+    slice_num = shift_vector['scan_dimensions'][0] * shift_vector['scan_dimensions'][1]
+    crop_size = np.int32(np.array(target_size) / compress_rate)
+    image = np.ones(tuple([slice_num] + list(crop_size)))
+
+    # 照明点和检测点
+    dot_exc = dot_det = np.zeros(tuple(crop_size))
+    center_pix = (crop_size[0] // 2, crop_size[1] // 2)
+    for i in tqdm(range(crop_size[0]), desc=Fore.LIGHTWHITE_EX + "Generate kernel      ",
+                  bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+        for j in range(crop_size[1]):
+            dot_exc[i][j] = np.exp(-((i - center_pix[0]) ** 2 + (j - center_pix[1]) ** 2) / (2 * sigma_exc ** 2))
+            dot_exc[i][j] = np.exp(-((i - center_pix[0]) ** 2 + (j - center_pix[1]) ** 2) / (2 * sigma_det ** 2))
+    if show_steps:
+        utils.single_show(dot_exc, "dot_exc")
+        utils.single_show(dot_det, "dot_det")
+
+    # 照明点位置
+    lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
+    if show_steps:
+        utils.single_show(lattice, "lattice location")
+
+    # 照明点附着于位置
+    lattice = simulate_blur_2d2(lattice, dot_exc, pad=10, pad_flag=utils.PAD_ZERO)
+    if show_steps:
+        utils.single_show(lattice, "illumination lattice")
+
+    # 检测矩阵生成
+    # img_det = np.zeros(target_size)
+    det_weight_dict = {}
+    for i in tqdm(range(target_size[0]), desc=Fore.LIGHTWHITE_EX + "Generate detect      ",
+                  bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+        for j in range(target_size[1]):
+            # 从中心在center_pix改到中心在（2*i，2*j)
+            y = 2 * i - center_pix[0]
+            x = 2 * j - center_pix[1]
+            # 创建平移矩阵
+            mov = np.float32([[1, 0, x],
+                              [0, 1, y]])
+            # 应用平移矩阵对图像进行平移变换
+            det_weight = cv2.warpAffine(dot_det, mov, (crop_size[1], crop_size[0]))
+            det_weight_dict[(i, j)] = det_weight.copy()
+            # img_det[i, j] = np.sum(det_weight * dot_exc)
+
+            # utils.single_show(det_weight, "det_weight"+str((i,j)))
+    # utils.single_show(img_det, "img_det")
+
+    # 合成图像生成
+    # 图像
+    # for i in range(len(filepath_list)):
+    for idx in range(1):
+
+        # 图像读取
+        img = np.float64(cv2.imread(filepath_list[idx], cv2.IMREAD_UNCHANGED)) / 65535
+        _, file_name = os.path.split(filepath_list[idx])
+        file_name, _ = os.path.splitext(file_name)
+
+        if show_steps:
+            utils.single_show(img, "original image_" + file_name)
+
+        # 裁剪图像
+        cropped_img = img[img.shape[0] // 2 - crop_size[0] // 2:img.shape[0] // 2 + crop_size[0] // 2,
+                      img.shape[1] // 2 - crop_size[1] // 2:img.shape[1] // 2 + crop_size[1] // 2]
+        if show_steps:
+            utils.single_show(cropped_img, "cropped_img_" + file_name)
+
+        # 扩展维度
+        extended_img = np.stack([cropped_img] * 224, axis=0)
+
+        # 晶格照明
+        latticed_img = extended_img * lattice
+        if show_steps:
+            utils.single_show(latticed_img, "latticed_img_" + file_name)
+
+        # 检测矩阵检测
+        img_det = simulate_detect(img_det_shape=tuple([slice_num] + list(target_size)), latticed_img=latticed_img,
+                        file_name=file_name, det_weight_dict=det_weight_dict)
+        if show_steps:
+            utils.single_show(img_det, "img_det_" + file_name)
+
+
+        # 校准
+        lake_img = np.ones(tuple(crop_size))
+        file_name = "lake"
+        lake_det = simulate_detect(img_det_shape=tuple([slice_num] + list(target_size)), latticed_img=lake_img,
+                                  file_name=file_name, det_weight_dict=det_weight_dict)
+        if show_steps:
+            utils.single_show(lake_det, "img_det_" + file_name)
+
+        # # 背景
+        # back_img = np.zeros([256, 256])
+        # file_name = "background"
+        # img_det = np.zeros(tuple([slice_num] + list(target_size)))
+        # for slice_num in tqdm(range(slice_num), desc=Fore.LIGHTWHITE_EX + "Detecting image" + file_name,
+        #                       bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+        #     for i in range(target_size[0]):
+        #         for j in range(target_size[1]):
+        #             img_det[slice_num, i, j] = np.sum(det_weight_dict[(i, j)] * latticed_img[slice_num])
+        # if show_steps:
+        #     utils.single_show(img_det, "img_det" + file_name)
+        #
+        #     # 校准
+        #     # img = np.ones([256, 256])
+        #     # file_name = "lake"
+    return
+
+
+def simulate_detect(img_det_shape, latticed_img, file_name, det_weight_dict):
+    img_det = np.zeros(img_det_shape)
+    for slice_num in tqdm(range(img_det_shape[0]), desc=Fore.LIGHTWHITE_EX + "Detecting image " + file_name,
+                          bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+        for i in range(img_det_shape[1]):
+            for j in range(img_det_shape[2]):
+                img_det[slice_num, i, j] = np.sum(det_weight_dict[(i, j)] * latticed_img[slice_num])
+
+    return img_det
 
 
 def simulate_degrade(
-        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma, illu_sigma2,blur_sigma,
+        image_shape, lattice_vectors, offset_vector, shift_vector, filepath_list, result_folder, illu_sigma,
+        illu_sigma2, blur_sigma,
         illu_n_mean, illu_n_sigma, blur_n_mean, blur_n_sigma,
         show_steps=False, save=False, save_gt=False
 ):
@@ -32,7 +155,8 @@ def simulate_degrade(
     if show_steps:
         utils.single_show(lattice, "lattice location")
 
-    lattice = simulate_blur_2d(lattice, sigma=illu_sigma, sigma2=illu_sigma2, noise_flag=utils.BLUR_GP, mean_n=illu_n_mean,
+    lattice = simulate_blur_2d(lattice, sigma=illu_sigma, sigma2=illu_sigma2, noise_flag=utils.BLUR_GP,
+                               mean_n=illu_n_mean,
                                sigma_n=illu_n_sigma, pad=10, pad_flag=utils.PAD_ZERO, flag=True)
     if show_steps:
         utils.single_show(lattice, "illumination lattice")
@@ -93,7 +217,7 @@ def simulate_degrade(
     return
 
 
-def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, show=True):
+def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, show=False):
     """
     得到整个图像堆栈的晶格点位置图像
 
@@ -108,8 +232,12 @@ def get_lattice_image(img, direct_lattice_vectors, offset_vector, shift_vector, 
         plt.figure()
 
     lattice = []
-    for s in range(img.shape[0]):
-        plt.clf()
+
+    for s in tqdm(range(img.shape[0]), desc=Fore.LIGHTWHITE_EX + "Generate lattice     ",
+                  bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+        if show:
+            plt.clf()
+
         img_show = median_filter(np.array(img[s, :, :]), size=3)  # 3x3正方形窗口
         dots = np.zeros(img_show.shape)
         lattice_points = generate_lattice(img_show.shape, direct_lattice_vectors,
@@ -192,6 +320,30 @@ def get_shift(shift_vector, frame_number):
         return frame_number * shift_vector
 
 
+def simulate_blur_2d2(image, psf, pad=0, pad_flag=utils.PAD_ZERO):
+    """
+    对二维图像或三维堆栈进行模拟模糊，卷积方法
+    :param image:
+    :param psf:
+    :param pad:
+    :param pad_flag:
+    :return:
+    """
+
+    psf /= np.max(psf)
+    # utils.single_show(psf, "psf")
+
+    if len(image.shape) == 3:
+
+        for j in tqdm(range(image.shape[0]), desc=Fore.LIGHTWHITE_EX + "Generate illumination",
+                      bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
+            image[j] = utils.blur_2d(image[j], psf, noise_flag=utils.BLUR_ONLY, pad=pad, pad_flag=pad_flag)
+    elif len(image.shape) == 2:
+        image = utils.blur_2d(image, psf, noise_flag=utils.BLUR_ONLY, pad=pad, pad_flag=pad_flag)
+
+    return image
+
+
 def simulate_blur_2d(image, sigma, sigma2=10, noise_flag=utils.BLUR_ONLY, mean_n=0., sigma_n=0., pad=0,
                      pad_flag=utils.PAD_ZERO, flag=False):
     """
@@ -209,13 +361,13 @@ def simulate_blur_2d(image, sigma, sigma2=10, noise_flag=utils.BLUR_ONLY, mean_n
     psf = utils.create_2d_gaussian_kernel(kernel_size, sigma)
 
     if flag:
-        psf2 = utils.create_2d_gaussian_kernel(kernel_size, sigma2)
+        psf2 = 2 * utils.create_2d_gaussian_kernel(kernel_size, sigma2)
         psf3 = utils.create_2d_gaussian_kernel(kernel_size, 0.4)
         psf4 = utils.create_2d_gaussian_kernel(kernel_size, 1.5)
-        psf5 = utils.create_2d_gaussian_kernel(kernel_size, 4)
-        psf6 = utils.create_2d_gaussian_kernel(kernel_size, 6)
-        psf = np.maximum(psf, psf2,psf3)
-        psf = np.maximum(psf, psf4,psf5)
+        psf5 = 1.2 * utils.create_2d_gaussian_kernel(kernel_size, 4)
+        psf6 = 1.5 * utils.create_2d_gaussian_kernel(kernel_size, 6)
+        psf = np.maximum(psf, psf2, psf3)
+        psf = np.maximum(psf, psf4, psf5)
         psf = np.maximum(psf, psf6)
 
     psf /= np.max(psf)

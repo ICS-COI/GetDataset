@@ -10,10 +10,13 @@ from colorama import Fore
 
 # 从成像原理出发
 def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_vectors, offset_vector,
-                    shift_vector, filepath_list, show_steps=False, ):
+                    shift_vector, filepath_list, result_folder, show_steps=False, save=False, save_lake=False,
+                    save_background=False, save_lattice=False,save_illumination=False):
     slice_num = shift_vector['scan_dimensions'][0] * shift_vector['scan_dimensions'][1]
     crop_size = np.int32(np.array(target_size) / compress_rate)
     image = np.ones(tuple([slice_num] + list(crop_size)))
+    if not os.path.isdir(result_folder):
+        os.makedirs(result_folder)
 
     # 照明点和检测点
     dot_exc = dot_det = np.zeros(tuple(crop_size))
@@ -31,11 +34,17 @@ def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_ve
     lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
     if show_steps:
         utils.single_show(lattice, "lattice location")
+    if save_lattice:
+        result_name = os.path.join(result_folder, 'lattice.tif')
+        utils.save_tiff_3d(result_name, lattice)
 
     # 照明点附着于位置
     lattice = simulate_blur_2d2(lattice, dot_exc, pad=10, pad_flag=utils.PAD_ZERO)
     if show_steps:
         utils.single_show(lattice, "illumination lattice")
+    if save_illumination:
+        result_name = os.path.join(result_folder, 'illumination.tif')
+        utils.save_tiff_3d(result_name, lattice)
 
     # 检测矩阵生成
     # img_det = np.zeros(target_size)
@@ -59,8 +68,8 @@ def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_ve
 
     # 合成图像生成
     # 图像
-    # for i in range(len(filepath_list)):
-    for idx in range(1):
+    for idx in range(len(filepath_list)):
+        # for idx in range(1):
 
         # 图像读取
         img = np.float64(cv2.imread(filepath_list[idx], cv2.IMREAD_UNCHANGED)) / 65535
@@ -77,7 +86,7 @@ def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_ve
             utils.single_show(cropped_img, "cropped_img_" + file_name)
 
         # 扩展维度
-        extended_img = np.stack([cropped_img] * 224, axis=0)
+        extended_img = np.stack([cropped_img] * slice_num, axis=0)
 
         # 晶格照明
         latticed_img = extended_img * lattice
@@ -86,34 +95,36 @@ def imaging_process(compress_rate, target_size, sigma_exc, sigma_det, lattice_ve
 
         # 检测矩阵检测
         img_det = simulate_detect(img_det_shape=tuple([slice_num] + list(target_size)), latticed_img=latticed_img,
-                        file_name=file_name, det_weight_dict=det_weight_dict)
+                                  file_name=file_name, det_weight_dict=det_weight_dict)
         if show_steps:
             utils.single_show(img_det, "img_det_" + file_name)
 
+        # 保存
+        if save:
 
-        # 校准
-        lake_img = np.ones(tuple(crop_size))
+            result_name = os.path.join(result_folder, file_name) + '.tif'
+            utils.save_tiff_3d(result_name, img_det)
+
+    # 校准
+    if save_lake:
+        lake_img = lattice
         file_name = "lake"
         lake_det = simulate_detect(img_det_shape=tuple([slice_num] + list(target_size)), latticed_img=lake_img,
-                                  file_name=file_name, det_weight_dict=det_weight_dict)
+                                   file_name=file_name, det_weight_dict=det_weight_dict)
         if show_steps:
-            utils.single_show(lake_det, "img_det_" + file_name)
+            utils.single_show(lake_det, "img_det_lake")
+        result_name = os.path.join(result_folder, 'lake.tif')
+        utils.save_tiff_3d(result_name, lake_det)
 
-        # # 背景
-        # back_img = np.zeros([256, 256])
-        # file_name = "background"
-        # img_det = np.zeros(tuple([slice_num] + list(target_size)))
-        # for slice_num in tqdm(range(slice_num), desc=Fore.LIGHTWHITE_EX + "Detecting image" + file_name,
-        #                       bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
-        #     for i in range(target_size[0]):
-        #         for j in range(target_size[1]):
-        #             img_det[slice_num, i, j] = np.sum(det_weight_dict[(i, j)] * latticed_img[slice_num])
-        # if show_steps:
-        #     utils.single_show(img_det, "img_det" + file_name)
-        #
-        #     # 校准
-        #     # img = np.ones([256, 256])
-        #     # file_name = "lake"
+    # 背景
+    if save_background:
+        background_img = np.zeros(tuple([slice_num] + list(target_size)))
+
+        if show_steps:
+            utils.single_show(background_img, "img_det_background")
+        result_name = os.path.join(result_folder, 'background.tif')
+        utils.save_tiff_3d(result_name, background_img)
+
     return
 
 
@@ -124,6 +135,7 @@ def simulate_detect(img_det_shape, latticed_img, file_name, det_weight_dict):
         for i in range(img_det_shape[1]):
             for j in range(img_det_shape[2]):
                 img_det[slice_num, i, j] = np.sum(det_weight_dict[(i, j)] * latticed_img[slice_num])
+    img_det = img_det / np.max(img_det)
 
     return img_det
 

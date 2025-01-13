@@ -1,36 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="yiming@service.qich.top:9622 password (4)" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="yiming@service.qich.top:9622 password" remoteFilesAllowedToDisappearOnAutoupload="false" showNewOnSourceInSync="false">
     <serverData>
-      <paths name="lab">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/GetDataset" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="yiming@service.qich.top:9622 password">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/tmp/pycharm_project_194" local="$PROJECT_DIR$" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="yiming@service.qich.top:9622 password (2)">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/tmp/pycharm_project_297" local="$PROJECT_DIR$" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="yiming@service.qich.top:9622 password (3)">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/tmp/pycharm_project_418" local="$PROJECT_DIR$" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="yiming@service.qich.top:9622 password (4)">
         <serverdata>
           <mappings>
             <mapping deploy="/home/yiming/GetDataset" local="$PROJECT_DIR$" />

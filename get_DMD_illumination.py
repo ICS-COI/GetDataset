@@ -48,9 +48,9 @@ def get_lattice_image(image_shape, direct_lattice_vectors, offset_vector, shift_
 
 
 if __name__ == '__main__':
-    vector_basis = 36.
-    detect_radium = 3
-    scan_dimensions=(18, 16)
+    vector_basis = 24.
+    detect_radium = 1
+    scan_dimensions=(12, int(np.ceil(12/ 2.* np.sqrt(3))))
 
     lattice_vectors1 = [np.array([vector_basis, 0.]), np.array([-vector_basis/2., -vector_basis/2*np.sqrt(3)]),
                         np.array([-vector_basis/2., vector_basis/2*np.sqrt(3)])]
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     slice_num1 = shift_vector1['scan_dimensions'][0] * shift_vector1['scan_dimensions'][1]
     lattice_stack = get_lattice_image(img_shape, lattice_vectors1, offset_vector1, shift_vector1, show=False)
     utils.single_show(lattice_stack, "lattice_stack.tiff")
-    utils.save_tiff_3d(str(scan_dimensions)+"_"+str(vector_basis)+"_"+"1.tiff",lattice_stack)
+    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+"0.tiff",lattice_stack)
 
 
     detect_all = []
@@ -78,5 +78,5 @@ if __name__ == '__main__':
             for detected_idx in detect_idx:
                 lattice_stack[tuple([i] + detected_idx)] = 1
     utils.single_show(lattice_stack, "lattice_stack_circle_36.tiff")
-    utils.save_tiff_3d(str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_radium)+".tiff", lattice_stack)
+    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_radium)+".tiff", lattice_stack)
 

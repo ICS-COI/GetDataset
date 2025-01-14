@@ -2,6 +2,7 @@ import os
 import cv2
 import utils
 import numpy as np
+import simulate_incoherent
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
@@ -13,32 +14,32 @@ SIMULATE_PSF: int = 1
 
 # 从成像原理出发
 def imaging_process(compress_rate, target_size, lattice_vectors, offset_vector, shift_vector, filepath_list,
-                    result_folder, psf_mode=GAUSS_PSF, sigma_exc=2, sigma_det=2, show_steps=False, save=False, save_lake=False,
-                    save_background=False, save_lattice=False, save_illumination=False):
+                    result_folder, simulate_params, psf_mode=GAUSS_PSF, sigma_exc=2, sigma_det=2, show_steps=False,
+                    save=False, save_lake=False, save_background=False, save_lattice=False, save_illumination=False):
     slice_num = shift_vector['scan_dimensions'][0] * shift_vector['scan_dimensions'][1]
     crop_size = np.int32(np.array(target_size) / compress_rate)
     image = np.ones(tuple([slice_num] + list(crop_size)))
     if not os.path.isdir(result_folder):
         os.makedirs(result_folder)
 
-    # 画PSF侧面图像，用真实PSF以及多次高斯进行尝试，顺便找找有没有其他波状函数可以用在这里！
-    if psf_mode == SIMULATE_PSF:
-
-
     # 照明点和检测点
-    dot_exc = dot_det = np.zeros(tuple(crop_size))
+    dot_exc = np.zeros(tuple(crop_size))
+    dot_det = np.zeros(tuple(crop_size))
     center_pix = (crop_size[0] // 2, crop_size[1] // 2)
     for i in tqdm(range(crop_size[0]), desc=Fore.LIGHTWHITE_EX + "Generate kernel      ",
                   bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
         for j in range(crop_size[1]):
             if psf_mode == GAUSS_PSF:
                 dot_exc[i][j] = np.exp(-((i - center_pix[0]) ** 2 + (j - center_pix[1]) ** 2) / (2 * sigma_exc ** 2))
-            dot_exc[i][j] = np.exp(-((i - center_pix[0]) ** 2 + (j - center_pix[1]) ** 2) / (2 * sigma_det ** 2))
-    if show_steps:
-        if psf_mode == GAUSS_PSF:
-            utils.single_show(dot_exc, "dot_exc")
-        utils.single_show(dot_det, "dot_det")
+            dot_det[i][j] = np.exp(-((i - center_pix[0]) ** 2 + (j - center_pix[1]) ** 2) / (2 * sigma_det ** 2))
 
+    if psf_mode == SIMULATE_PSF:
+        _, _, dot_exc2 = simulate_incoherent.incoh_otf(dot_det, simulate_params)
+
+    # 画PSF侧面图像，用真实PSF以及多次高斯进行尝试，顺便找找有没有其他波状函数可以用在这里！
+    if show_steps:
+        utils.single_show(dot_exc, "dot_exc")
+        utils.single_show(dot_det, "dot_det")
 
     # 照明点位置
     lattice = get_lattice_image(image, lattice_vectors, offset_vector, shift_vector, show=False)
@@ -71,10 +72,6 @@ def imaging_process(compress_rate, target_size, lattice_vectors, offset_vector, 
             # 应用平移矩阵对图像进行平移变换
             det_weight = cv2.warpAffine(dot_det, mov, (crop_size[1], crop_size[0]))
             det_weight_dict[(i, j)] = det_weight.copy()
-            # img_det[i, j] = np.sum(det_weight * dot_exc)
-
-            # utils.single_show(det_weight, "det_weight"+str((i,j)))
-    # utils.single_show(img_det, "img_det")
 
     # 合成图像生成
     # 图像

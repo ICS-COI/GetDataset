@@ -10,10 +10,24 @@ if __name__ == '__main__':
 
     filepath_list = list_suffix_files(ori_folder, '.tiff')
 
+    image = np.ones((256, 256))
+    compress_rate = 0.5
+    target_size = [128, 128]
+    sigma_exc = 2
+    sigma_det = 2
+
+    params = {
+        'length': 1.3e-3,
+        'lambda': 555e-9,
+        'wxp': 1.5e-3,
+        'zxp': 123.8e-3,
+        'm': 10,
+    }
+
     vector_basis = 30.
     scan_dimension_1 = 15
     scan_dimensions = (scan_dimension_1, int(np.ceil(scan_dimension_1 / 2. * np.sqrt(3))))
-    print(scan_dimensions)
+    print("Scan dimensions:",scan_dimensions)
 
     lattice_vectors = [np.array([vector_basis, 0.]), np.array([-vector_basis / 2., -vector_basis / 2 * np.sqrt(3)]),
                        np.array([-vector_basis / 2., vector_basis / 2 * np.sqrt(3)])]
@@ -21,15 +35,8 @@ if __name__ == '__main__':
     shift_vector = {'fast_axis': np.array([vector_basis / scan_dimensions[0], 0.]), 'scan_dimensions': scan_dimensions,
                     'slow_axis': np.array([0., -vector_basis / 2 * np.sqrt(3) / scan_dimensions[1]])}
 
-
-    # 从成像原理出发生成模糊图像
-    image = np.ones((256, 256))
-    compress_rate = 0.5
-    target_size = [128, 128]
-    sigma_exc = 2
-    sigma_det = 2
-    result_folder = os.path.join(data_root, 'result/MSIM_simulate_from_function_' + str(vector_basis) + "_" + str(
-        scan_dimensions) + "_" + str(sigma_exc) + "_" + str(sigma_det))
+    result_folder = os.path.join(data_root, 'result/MSIM_function_incoherent' + str(vector_basis) + "_" + str(
+        scan_dimensions) + "_w=" + str(params['wxp']) + "_" + str(sigma_det))
 
     simulate_degrade.imaging_process(
 
@@ -38,6 +45,8 @@ if __name__ == '__main__':
         lattice_vectors=lattice_vectors,
         offset_vector=offset_vector,
         shift_vector=shift_vector,
+        psf_mode=simulate_degrade.SIMULATE_PSF,
+        simulate_params=params,
         sigma_exc=sigma_exc,
         sigma_det=sigma_det,
         filepath_list=filepath_list,

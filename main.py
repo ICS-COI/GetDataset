@@ -8,8 +8,6 @@ if __name__ == '__main__':
     data_root = r'data'
     ori_folder = os.path.join(data_root, r'MSIM')
 
-    # test2
-
     filepath_list = list_suffix_files(ori_folder, '.tiff')
 
     image = np.ones((256, 256))

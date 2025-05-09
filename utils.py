@@ -226,3 +226,35 @@ def get_circular_region_coordinates_numpy(center_x, center_y, radius, image_shap
     mask = distance <= radius
     coordinates = np.column_stack((xx[mask].ravel(), yy[mask].ravel())).tolist()
     return coordinates
+
+def get_circular_region_coordinates_diameter(center_x, center_y, diameter):
+    """
+    使用numpy获取以(center_x, center_y)为中心，diameter为直径的圆形区域内所有像素点坐标，
+    并根据输入的图像宽度和高度对坐标进行限制，确保都在图像范围内
+    :param center_x: 中心坐标的x值
+    :param center_y: 中心坐标的y值
+    :param diameter: 圆形区域的直径
+    :param image_shape: 图像形状
+    :return: 圆形区域内像素点坐标列表，每个元素为一个二元组 (x, y)
+    """
+    radius = diameter / 2  # 将直径转换为半径
+    # 确定横坐标（x）的有效范围，限制在图像宽度内
+    x_min = np.floor(center_x - radius)
+    x_max = np.ceil(center_x + radius)
+    x = np.arange(x_min, x_max + 1)
+
+    # 确定纵坐标（y）的有效范围，限制在图像高度内
+    y_min = np.floor(center_y - radius)
+    y_max = np.ceil(center_y + radius)
+    y = np.arange(y_min, y_max + 1)
+
+    xx, yy = np.meshgrid(x, y)
+    distance = np.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
+    coordinates = []
+    for i in range(xx.shape[0]):
+        for j in range(xx.shape[1]):
+            if distance[i, j] < radius:
+                coordinates.append((xx[i, j], yy[i, j]))
+    print("Circular region coordinates: ", coordinates)
+    return coordinates
+

@@ -49,7 +49,7 @@ def get_lattice_image(image_shape, direct_lattice_vectors, offset_vector, shift_
 
 if __name__ == '__main__':
     vector_basis = 24.
-    detect_radium = 1
+    detect_diameter = 3
     scan_dimensions=(12, int(np.ceil(12/ 2.* np.sqrt(3))))
 
     lattice_vectors1 = [np.array([vector_basis, 0.]), np.array([-vector_basis/2., -vector_basis/2*np.sqrt(3)]),
@@ -64,19 +64,25 @@ if __name__ == '__main__':
     slice_num1 = shift_vector1['scan_dimensions'][0] * shift_vector1['scan_dimensions'][1]
     lattice_stack = get_lattice_image(img_shape, lattice_vectors1, offset_vector1, shift_vector1, show=False)
     utils.single_show(lattice_stack, "lattice_stack.tiff")
-    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+"0.tiff",lattice_stack)
+    # utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+"0.tiff",lattice_stack)
 
 
     detect_all = []
+
+    detect_idx = utils.get_circular_region_coordinates_diameter(0, 0, detect_diameter)
     for i in tqdm(range(len(lattice_stack)), desc=Fore.LIGHTWHITE_EX + "Generate dot    ",
                   bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
         coordinates = np.argwhere(lattice_stack[i] == 1)
         location_idx = [tuple(coord) for coord in coordinates]
         detected_i = []
         for (x, y) in location_idx:
-            detect_idx = utils.get_circular_region_coordinates_numpy(x, y, detect_radium, img_shape)
             for detected_idx in detect_idx:
-                lattice_stack[tuple([i] + detected_idx)] = 1
-    utils.single_show(lattice_stack, "lattice_stack_circle_36.tiff")
-    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_radium)+".tiff", lattice_stack)
+
+                x=int(x+detected_idx[0])
+                y=int(y+detected_idx[1])
+                if x<0 or x>=img_shape[0] or y<0 or y>=img_shape[1]:
+                    continue
+                lattice_stack[i,x,y] = 1
+    utils.single_show(lattice_stack, str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter))
+    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter)+".tiff", lattice_stack)
 

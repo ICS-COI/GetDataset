@@ -254,7 +254,6 @@ def get_circular_region_coordinates_diameter(center_x, center_y, diameter):
     for i in range(xx.shape[0]):
         for j in range(xx.shape[1]):
             if distance[i, j] < radius:
-                coordinates.append((xx[i, j], yy[i, j]))
-    print("Circular region coordinates: ", coordinates)
+                coordinates.append((int(xx[i, j]), int(yy[i, j])))
     return coordinates
 

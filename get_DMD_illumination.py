@@ -70,6 +70,7 @@ if __name__ == '__main__':
     detect_all = []
 
     detect_idx = utils.get_circular_region_coordinates_diameter(0, 0, detect_diameter)
+    print("Circular region coordinates: ", detect_idx)
     for i in tqdm(range(len(lattice_stack)), desc=Fore.LIGHTWHITE_EX + "Generate dot    ",
                   bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
         coordinates = np.argwhere(lattice_stack[i] == 1)
@@ -77,12 +78,13 @@ if __name__ == '__main__':
         detected_i = []
         for (x, y) in location_idx:
             for detected_idx in detect_idx:
-
-                x=int(x+detected_idx[0])
-                y=int(y+detected_idx[1])
-                if x<0 or x>=img_shape[0] or y<0 or y>=img_shape[1]:
+                # print(i,x,y,detected_idx)
+                add_x=int(x+detected_idx[0])
+                add_y=int(y+detected_idx[1])
+                # print(i,x,y)
+                if add_x<0 or add_x>=img_shape[0] or add_y<0 or add_y>=img_shape[1]:
                     continue
-                lattice_stack[i,x,y] = 1
+                lattice_stack[i,add_x,add_y] = 1
     utils.single_show(lattice_stack, str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter))
     utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter)+".tiff", lattice_stack)
 

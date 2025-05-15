@@ -30,7 +30,8 @@ def get_lattice_image(image_shape, direct_lattice_vectors, offset_vector, shift_
 
         dots = np.zeros(tuple(image_shape))
         lattice_points = simulate_degrade.generate_lattice(image_shape, direct_lattice_vectors,
-                                          center_pix=offset_vector + simulate_degrade.get_shift(shift_vector, s))
+                                                           center_pix=offset_vector + simulate_degrade.get_shift(
+                                                               shift_vector, s))
         for lp in lattice_points:
             x, y = np.round(lp).astype(int)
             dots[x, y] = 1
@@ -49,15 +50,15 @@ def get_lattice_image(image_shape, direct_lattice_vectors, offset_vector, shift_
 
 if __name__ == '__main__':
     vector_basis = 24.
-    detect_diameter = 3
-    scan_dimensions=(12, int(np.ceil(12/ 2.* np.sqrt(3))))
+    detect_diameter = 5
+    step_1 = 15
+    scan_dimensions = (step_1, int(np.ceil(step_1 / 2. * np.sqrt(3))))
 
-    lattice_vectors1 = [np.array([vector_basis, 0.]), np.array([-vector_basis/2., -vector_basis/2*np.sqrt(3)]),
-                        np.array([-vector_basis/2., vector_basis/2*np.sqrt(3)])]
-    offset_vector1 = np.array([540.,960.])
-    shift_vector1 = {'fast_axis': np.array([vector_basis/scan_dimensions[0], 0.]), 'scan_dimensions': scan_dimensions,
-                     'slow_axis': np.array([0., -vector_basis/2*np.sqrt(3)/scan_dimensions[1]])}
-
+    lattice_vectors1 = [np.array([vector_basis, 0.]), np.array([-vector_basis / 2., -vector_basis / 2 * np.sqrt(3)]),
+                        np.array([-vector_basis / 2., vector_basis / 2 * np.sqrt(3)])]
+    offset_vector1 = np.array([540., 960.])
+    shift_vector1 = {'fast_axis': np.array([vector_basis / scan_dimensions[0], 0.]), 'scan_dimensions': scan_dimensions,
+                     'slow_axis': np.array([0., -vector_basis / 2 * np.sqrt(3) / scan_dimensions[1]])}
 
     # DMD图像生成
     img_shape = [1080, 1920]
@@ -66,7 +67,6 @@ if __name__ == '__main__':
     utils.single_show(lattice_stack, "lattice_stack.tiff")
     # utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+"0.tiff",lattice_stack)
 
-
     detect_all = []
 
     detect_idx = utils.get_circular_region_coordinates_diameter(0, 0, detect_diameter)
@@ -74,15 +74,14 @@ if __name__ == '__main__':
                   bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.LIGHTWHITE_EX)):
         coordinates = np.argwhere(lattice_stack[i] == 1)
         location_idx = [tuple(coord) for coord in coordinates]
-        detected_i = []
         for (x, y) in location_idx:
             for detected_idx in detect_idx:
-
-                x=int(x+detected_idx[0])
-                y=int(y+detected_idx[1])
-                if x<0 or x>=img_shape[0] or y<0 or y>=img_shape[1]:
+                x_dot = int(x + detected_idx[0])
+                y_dot = int(y + detected_idx[1])
+                if x_dot < 0 or x_dot >= img_shape[0] or y_dot < 0 or y_dot >= img_shape[1]:
                     continue
-                lattice_stack[i,x,y] = 1
-    utils.single_show(lattice_stack, str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter))
-    utils.save_tiff_3d("result/"+str(scan_dimensions)+"_"+str(vector_basis)+"_"+str(detect_diameter)+".tiff", lattice_stack)
-
+                lattice_stack[i, x_dot, y_dot] = 1
+    utils.single_show(lattice_stack, str(scan_dimensions) + "_" + str(vector_basis) + "_" + str(detect_diameter))
+    utils.save_tiff_3d(
+        "result/" + str(scan_dimensions) + "_" + str(vector_basis) + "_" + str(detect_diameter) + ".tiff",
+        lattice_stack)
